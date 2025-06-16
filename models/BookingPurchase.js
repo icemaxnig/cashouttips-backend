@@ -9,7 +9,7 @@ const bookingPurchaseSchema = new mongoose.Schema(
     },
     code: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Booking",
+      ref: "BookingCode",
       required: true,
     },
     price: Number,

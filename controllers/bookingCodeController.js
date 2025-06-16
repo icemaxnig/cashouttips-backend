@@ -1,5 +1,5 @@
 const BookingCode = require("../models/BookingCode");
-const Wallet = require("../models/wallet");
+const Wallet = require("../models/Wallet");
 
 // ✅ Admin uploads a new booking code
 const uploadBookingCode = async (req, res) => {

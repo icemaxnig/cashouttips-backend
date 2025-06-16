@@ -7,10 +7,13 @@ const RegisterOtp = require("../models/RegisterOtp");
 const UserLog = require("../models/UserLog");
 const sendOtpEmail = require("../sendOtpEmail");
 const generateAndStoreOtp = require("../utils/generateAndStoreOtp");
+const mongoose = require("mongoose");
+const Wallet = mongoose.models.Wallet || require("../models/Wallet");
 
 // 🔐 User Registration
 exports.register = async (req, res) => {
   const { email, password, firstName = "User" } = req.body;
+
   try {
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: "Email already exists" });
@@ -20,8 +23,13 @@ exports.register = async (req, res) => {
       email,
       password: hashed,
       firstName,
-      mainWallet: 0,
-      bonusWallet: 0,
+    });
+	
+	// ✅ Create wallet entry for new user
+    await Wallet.create({
+      user: user._id,
+      balance: 0,
+      bonusBalance: 0,
     });
 
     // 🚀 Generate and send OTP

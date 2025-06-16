@@ -125,19 +125,51 @@ router.post("/link-telegram", async (req, res) => {
 // ✅ JWT-Protected Endpoints
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("-password");
+    console.log("🔍 Fetching user data for ID:", req.user._id);
+    
+    const user = await User.findById(req.user._id)
+      .select("-password")
+      .lean();
+      
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      console.error("❌ User not found for ID:", req.user._id);
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
     }
-    return res.status(200).json({ success: true, user });
+
+    // Ensure wallet fields are numbers
+    const userData = {
+      ...user,
+      mainWallet: Number(user.mainWallet) || 0,
+      bonusWallet: Number(user.bonusWallet) || 0
+    };
+
+    console.log("✅ User data fetched successfully:", {
+      id: userData._id,
+      email: userData.email,
+      mainWallet: userData.mainWallet,
+      bonusWallet: userData.bonusWallet
+    });
+
+    return res.status(200).json({ 
+      success: true, 
+      user: userData 
+    });
   } catch (err) {
-    console.error("GET /auth/me error:", err);
-    return res.status(500).json({ success: false, message: "Server error" });
+    console.error("❌ GET /auth/me error:", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error",
+      error: err.message 
+    });
   }
 });
 
 router.get("/admin-only", verifyToken, checkRole("admin"), (req, res) => {
   return res.status(200).json({ success: true, message: "Welcome admin!" });
 });
+
 
 module.exports = router;

@@ -26,12 +26,20 @@ router.post("/wallet-adjust", async (req, res) => {
     }
 
     await user.save();
-    await WalletTransaction.create({
+    const transaction = await WalletTransaction.create({
       userId,
       type,
       wallet,
       amount,
       description: `Admin ${type}ed ₦${amount} to ${wallet} wallet`
+    });
+
+    // Emit real-time update
+    const io = req.app.get("io");
+    io.emit(`wallet-update-${userId}`, {
+      mainWallet: user.mainWallet,
+      bonusWallet: user.bonusWallet,
+      transaction
     });
 
     res.status(200).json({ message: "Wallet updated successfully", user });

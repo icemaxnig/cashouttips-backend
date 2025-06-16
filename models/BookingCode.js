@@ -12,6 +12,10 @@ const bookingCodeSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true },
   postedAt: { type: Date, default: Date.now },
   purchasedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  purchaseLog: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    time: { type: Date, default: Date.now }
+  }],
   note: { type: String },
 });
 

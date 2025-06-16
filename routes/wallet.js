@@ -1,22 +1,26 @@
+// routes/wallet.js
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth");
+const verifyToken = require("../middleware/verifyToken");
+const mongoose = require("mongoose");
+const Wallet = mongoose.models.Wallet || require("../models/Wallet");
 
-router.get("/balance", auth, async (req, res) => {
-  const user = req.user;
-  res.json({
-    mainWallet: user.mainWallet || 0,
-    bonusWallet: user.bonusWallet || 0,
-  });
+// ?? Get wallet balances (main + bonus)
+router.get("/", verifyToken, async (req, res) => {
+  try {
+    const wallet = await Wallet.findOne({ user: req.user.userId });
+    if (!wallet) {
+      return res.status(404).json({ message: "Wallet not found" });
+    }
+
+    res.json({
+      mainWallet: wallet.balance || 0,
+      bonusWallet: wallet.bonusBalance || 0,
+    });
+  } catch (err) {
+    console.error("Wallet fetch error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
-
-router.post("/fund", verifyUser, async (req, res) => {
-  const { amount } = req.body;
-  const user = await User.findById(req.user._id);
-  user.wallet.mainWallet += parseFloat(amount);
-  await user.save();
-  res.json({ message: "Wallet funded", wallet: user.wallet });
-});
-
 
 module.exports = router;

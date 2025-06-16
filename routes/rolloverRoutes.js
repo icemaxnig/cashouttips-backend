@@ -49,7 +49,33 @@ router.delete("/admin/rollover-plan/:id", deletePlan);
 router.post("/admin/rollover-game", rolloverGameController.createRolloverGame);
 
 // ✅ Rollover endpoints
-router.get("/rollover/today", rolloverController.getTodaysRollover);
+router.get("/rollover/today", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const tips = await RolloverTip.find({
+      expiresAt: { $gte: new Date() },
+    })
+      .populate("plan", "name odds duration")
+      .sort({ createdAt: -1 });
+
+    const user = await User.findById(userId);
+    const activePlans = user?.rolloverPlans || [];
+
+    // Get all tips, but mark which ones are accessible to the user
+    const enrichedTips = tips.map(tip => ({
+      ...tip.toObject(),
+      isLocked: !activePlans.some(p => p.plan?.toString() === tip.plan._id.toString())
+    }));
+
+    res.json(enrichedTips);
+  } catch (err) {
+    console.error("❌ Error fetching today's rollover tips:", err);
+    res.status(500).json({ message: "Failed to load tips" });
+  }
+});
+
 router.get("/rollover/grouped", rolloverController.getGroupedRolloverTips);
 
 // ✅ My Rollover (user-specific)
