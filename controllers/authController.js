@@ -23,13 +23,8 @@ exports.register = async (req, res) => {
       email,
       password: hashed,
       firstName,
-    });
-	
-	// ✅ Create wallet entry for new user
-    await Wallet.create({
-      user: user._id,
-      balance: 0,
-      bonusBalance: 0,
+      mainWallet: 0,
+      bonusWallet: 0,
     });
 
     // 🚀 Generate and send OTP

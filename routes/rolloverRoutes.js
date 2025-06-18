@@ -1,7 +1,8 @@
+// ✅ rolloverRoutes.js — Cleaned and Organized
 const express = require("express");
 const router = express.Router();
-
 const verifyToken = require("../middleware/verifyToken");
+
 const User = require("../models/User");
 const RolloverPlan = require("../models/RolloverPlan");
 const RolloverTip = require("../models/RolloverTip");
@@ -13,103 +14,78 @@ const {
   deletePlan,
 } = require("../controllers/rolloverPlanController");
 
-const rolloverGameController = require("../controllers/rolloverGameController");
-const rolloverController = require("../controllers/rolloverController");
+const { createRolloverGame } = require("../controllers/rolloverGameController");
 
-// ✅ Public: Rollover Plans for frontend (enriched with subscription status)
-router.get("/rollover-plans", verifyToken, async (req, res) => {
+const {
+  getTodaysRollover,
+  getGroupedRolloverTips,
+  getAllRolloverTips,
+  getMyRolloverPlans,
+  getAllRolloverPlansPlain,
+} = require("../controllers/rolloverController");
+
+// ✅ Public: Get all grouped tips
+router.get("/all", getAllRolloverTips);
+
+// ✅ User: Get tips for subscribed plans
+router.get("/my", verifyToken, getMyRolloverPlans);
+
+// ✅ Public: Get today's grouped tips
+router.get("/today", verifyToken, getTodaysRollover);
+router.get("/grouped", getGroupedRolloverTips);
+
+// ✅ User: View available plans with status
+router.get("/plans", verifyToken, async (req, res) => {
   try {
-    const plans = await RolloverPlan.find();
-    const user = await User.findById(req.user.userId);
+    const allPlans = await RolloverPlan.find().sort({ createdAt: -1 }).lean();
+    const now = new Date();
+    const slot = Math.floor(now.getTime() / (5 * 60 * 1000));
+    const startIndex = (slot % Math.max(1, Math.floor(allPlans.length / 4))) * 4;
+    const selectedPlans = allPlans.slice(startIndex, startIndex + 4);
 
-    const activePlans = user.rolloverPlans || [];
-    const enrichedPlans = plans.map((plan) => {
-      const alreadySubscribed = activePlans.some(
-        (p) => p.plan?.toString() === plan._id.toString()
-      );
+    const user = await User.findById(req.user._id);
+    const activePlans = user?.rolloverPlans || [];
+
+    const enriched = selectedPlans.map((plan) => {
+      const subscribed = activePlans.some(p => p.plan?.toString() === plan._id.toString());
+      const fakeSubs = plan.fakeStart + Math.floor((Date.now() - new Date(plan.createdAt)) / (1000 * 60 * 60)) * plan.growthRatePerHour;
       return {
-        ...plan.toObject(),
-        alreadySubscribed,
+        ...plan,
+        alreadySubscribed: subscribed,
+        fakeSubscribers: Math.floor(fakeSubs),
+        cta: {
+          text: subscribed ? "View Details" : "Subscribe Now",
+          link: `/rollover-plans/${plan._id}`,
+          type: subscribed ? "view" : "subscribe",
+        },
+        metadata: {
+          successRate: `${plan.successRate || 75}% Success Rate`,
+          subscribers: `${Math.floor(fakeSubs)} Active Subscribers`,
+          duration: `${plan.duration} Days Access`,
+          odds: `${plan.odds}x Daily Odds`,
+        },
       };
     });
 
-    res.json(enrichedPlans);
+    res.json({ plans: enriched });
   } catch (err) {
-    console.error("❌ Error loading rollover plans:", err);
+    console.error("❌ Error loading plans:", err);
     res.status(500).json({ message: "Failed to load plans" });
   }
 });
 
-// ✅ Admin: Plan management
-router.post("/admin/rollover-plans", createPlan);
-router.put("/admin/rollover-plan/:id", updatePlan);
-router.delete("/admin/rollover-plan/:id", deletePlan);
+// ✅ Admin: Create/Update/Delete Plans
+router.post("/admin/plans", createPlan);
+router.put("/admin/plan/:id", updatePlan);
+router.delete("/admin/plan/:id", deletePlan);
 
 // ✅ Admin: Upload games
-router.post("/admin/rollover-game", rolloverGameController.createRolloverGame);
+router.post("/admin/game", createRolloverGame);
 
-// ✅ Rollover endpoints
-router.get("/rollover/today", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user?._id;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-    const tips = await RolloverTip.find({
-      expiresAt: { $gte: new Date() },
-    })
-      .populate("plan", "name odds duration")
-      .sort({ createdAt: -1 });
-
-    const user = await User.findById(userId);
-    const activePlans = user?.rolloverPlans || [];
-
-    // Get all tips, but mark which ones are accessible to the user
-    const enrichedTips = tips.map(tip => ({
-      ...tip.toObject(),
-      isLocked: !activePlans.some(p => p.plan?.toString() === tip.plan._id.toString())
-    }));
-
-    res.json(enrichedTips);
-  } catch (err) {
-    console.error("❌ Error fetching today's rollover tips:", err);
-    res.status(500).json({ message: "Failed to load tips" });
-  }
-});
-
-router.get("/rollover/grouped", rolloverController.getGroupedRolloverTips);
-
-// ✅ My Rollover (user-specific)
-router.get("/rollover/my", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user?.userId;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-    const tips = await RolloverTip.find({
-      expiresAt: { $gte: new Date() },
-    })
-      .populate("plan", "name odds duration")
-      .sort({ createdAt: -1 });
-
-    const user = await User.findById(userId);
-    const activePlans = user?.rolloverPlans || [];
-
-    const myTips = tips.filter(tip =>
-      activePlans.some(
-        (p) => p.plan?.toString() === tip.plan._id.toString()
-      )
-    );
-
-    res.json(myTips);
-  } catch (err) {
-    console.error("❌ Failed to load my rollover tips:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-// ✅ Subscribe to rollover plan
-router.post("/subscribe/rollover", verifyToken, async (req, res) => {
+// ✅ Subscribe to a plan
+router.post("/subscribe", verifyToken, async (req, res) => {
   const { planId, walletType } = req.body;
-  const userId = req.user?.userId;
+  const userId = req.user?._id;
 
   if (!userId || !planId || !walletType)
     return res.status(400).json({ message: "Missing required fields" });
@@ -150,7 +126,6 @@ router.post("/subscribe/rollover", verifyToken, async (req, res) => {
     });
 
     await user.save();
-
     return res.status(200).json({ message: "Subscription successful" });
   } catch (err) {
     console.error("❌ Error in subscription:", err.message);
@@ -158,7 +133,10 @@ router.post("/subscribe/rollover", verifyToken, async (req, res) => {
   }
 });
 
-// ✅ Get plan by ID (used in /subscribe/:id)
+// ✅ All plans (raw) for /subscribe page - MUST come before /plans/:id
+router.get("/plans/all", verifyToken, getAllRolloverPlansPlain);
+
+// ✅ Get a specific plan by ID
 router.get("/plans/:id", verifyToken, async (req, res) => {
   try {
     const plan = await RolloverPlan.findById(req.params.id);
@@ -175,30 +153,5 @@ router.get("/plans/:id", verifyToken, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-// ✅ GET /rollover/plans — used in /subscribe
-router.get("/rollover/plans", async (req, res) => {
-  try {
-    const plans = await RolloverPlan.find({ price: { $gt: 0 }, duration: { $gt: 0 } }).sort({ createdAt: -1 });
-
-    const enhanced = plans.map((plan, index) => {
-      const createdAt = new Date(plan.createdAt).getTime();
-      const ageMinutes = Math.floor((Date.now() - createdAt) / 60000);
-      const offset = 100 + (index * 17);
-      const fakeSubscribers = offset + Math.floor(ageMinutes * 1.5);
-
-      return {
-        ...plan.toObject(),
-        fakeSubscribers
-      };
-    });
-
-    res.json(enhanced);
-  } catch (err) {
-    console.error("❌ Error fetching rollover plans:", err);
-    res.status(500).json({ message: "Failed to load plans" });
-  }
-});
-
 
 module.exports = router;

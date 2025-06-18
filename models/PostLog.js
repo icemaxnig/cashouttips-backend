@@ -7,4 +7,4 @@ const postLogSchema = new mongoose.Schema({
   postedAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('PostLog', postLogSchema);
+module.exports = mongoose.models.PostLog || mongoose.model('PostLog', postLogSchema);

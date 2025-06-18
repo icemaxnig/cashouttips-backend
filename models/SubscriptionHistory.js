@@ -8,4 +8,4 @@ const subscriptionHistorySchema = new mongoose.Schema({
   endDate: Date
 }, { timestamps: true });
 
-module.exports = mongoose.model("SubscriptionHistory", subscriptionHistorySchema);
+module.exports = mongoose.models.SubscriptionHistory || mongoose.model("SubscriptionHistory", subscriptionHistorySchema);

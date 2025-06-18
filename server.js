@@ -35,13 +35,12 @@ app.use(express.json());
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/auth/telegram", require("./routes/authTelegram"));
 app.use("/api/admin", require("./routes/adminAuth"));
-app.use("/api/admin", require("./routes/admin/rolloverPlans"));
+app.use("/api/admin/rollover-plans", require("./routes/admin/rolloverPlans"));
 app.use("/api/admin", require("./routes/admin/wallet"));
 app.use("/api/admin", require("./routes/admin/walletAdjust"));
 app.use("/api/admin", require("./routes/admin/rolloverTips"));
 app.use("/api/users", require("./routes/user"));
 app.use("/api/booking", require("./routes/booking"));
-app.use("/api/booking-code", require("./routes/booking"));
 app.use("/api/booking-codes", require("./routes/bookingCodes"));
 app.use("/api/rollover", rolloverRoutes);
 app.use("/api/rollover-tips", require("./routes/rolloverTips"));
@@ -51,18 +50,14 @@ app.use("/api/settings", require("./routes/settings"));
 app.use("/api/wallets", require("./routes/walletRoutes"));
 app.use("/api/send-otp", require("./routes/sendOtp"));
 app.use("/api/codes", require("./routes/codes"));
-app.use("/api/rollover-plans", require("./routes/public/rolloverPlansPublic"));
-app.use("/api/rollover", require("./routes/rolloverRoutes"));
-app.use("/api", require("./routes/rolloverRoutes"));
-app.use("/api/booking", bookingRoutes);
 app.use("/api/tips", require("./routes/tipsRoute_patch"));
 app.use("/api/user", require("./routes/userPurchaseRoute_patch"));
-app.use("/api/booking", require("./routes/purchaseRoute_debug_patch")); // replaces previous
-
-app.use("/api/debug", debugTokenRoute);
+app.use("/api/booking", require("./routes/purchaseRoute_debug_patch"));
+app.use("/api/debug", require("./routes/debugTokenRoute"));
+app.use("/api/rollover-plans", require("./routes/public/rolloverPlansPublic"));
 
 // ✅ Legacy/Non-API
-app.use("/admin", require("./routes/adminRolloverPlan"));
+app.use("/api/admin", require("./routes/adminRolloverPlan"));
 app.use("/rollover", require("./routes/publicRollover"));
 
 // 🧹 Start Cron Jobs
@@ -81,8 +76,9 @@ io.on("connection", (socket) => {
 // Make io accessible to routes
 app.set("io", io);
 
-// ❌ 404 Handler
+// ❌ 404 Handler - Move this to the end
 app.use((req, res) => {
+  console.log("404 Not Found:", req.method, req.url); // Add logging
   res.status(404).json({ message: "Endpoint not found" });
 });
 

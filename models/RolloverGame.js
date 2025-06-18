@@ -29,4 +29,4 @@ const RolloverGameSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-module.exports = mongoose.model("RolloverGame", RolloverGameSchema);
+module.exports = mongoose.models.RolloverGame || mongoose.model("RolloverGame", RolloverGameSchema);

@@ -1,157 +1,123 @@
-const UserRollover = require('../models/UserRollover');
-const RolloverPlan = require("../models/RolloverPlan");
+// ✅ rolloverController.js — Final Cleaned and Fixed Version
 const RolloverTip = require("../models/RolloverTip");
-const User = require('../models/User');
+const RolloverPlan = require("../models/RolloverPlan");
+const RolloverSubscription = require("../models/RolloverSubscription");
 
-// Upload Rollover (placeholder - not yet implemented)
-exports.uploadRollover = async (req, res) => {
+// ✅ GET /rollover/all — For public view or dashboard widget
+const getAllRolloverTips = async (req, res) => {
   try {
-    return res.status(200).json({ message: "Rollover uploaded (placeholder)" });
-  } catch (err) {
-    console.error("❌ Failed to upload rollover:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Get public plans with fake subscriber count
-exports.getPublicPlans = async (req, res) => {
-  try {
-    const plans = await RolloverPlan.find({ price: { $gt: 0 }, duration: { $gt: 0 } }).sort({ createdAt: -1 });
-
-    const enhanced = plans.map((plan, index) => {
-      const createdAt = new Date(plan.createdAt).getTime();
-      const ageMinutes = Math.floor((Date.now() - createdAt) / 60000);
-      const startCount = 100 + (index * 20);
-      const fakeSubscribers = startCount + Math.floor(ageMinutes * 1.7);
-
-      return {
-        ...plan.toObject(),
-        fakeSubscribers
-      };
-    });
-
-    res.json(enhanced);
-  } catch (err) {
-    console.error("❌ Error fetching plans:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// ✅ For Dashboard Preview: Limit to 2 upcoming tips
-exports.getTodaysRollover = async (req, res) => {
-  try {
-    const now = new Date();
-
-    const tips = await RolloverTip.find({
-      expiresAt: { $gte: now }, // show only valid tips
-    })
-      .populate("plan", "name")
-      .sort({ createdAt: -1 })
-      .limit(2); // dashboard preview
-
-    const mapped = tips.map((tip) => ({
-      _id: tip._id,
-      planId: tip.plan._id,
-      planName: tip.plan.name,
-      dayIndex: tip.dayIndex,
-      games: tip.games,
-      totalOdds: tip.totalOdds,
-      note: tip.note,
-      expiresAt: tip.expiresAt,
-    }));
-
-    res.json(mapped);
-  } catch (err) {
-    console.error("❌ Error fetching today's rollover tips:", err);
-    res.status(500).json({ message: "Failed to load rollover tips" });
-  }
-};
-
-// ✅ For Full Viewer: Group tips by plan
-exports.getGroupedRolloverTips = async (req, res) => {
-  try {
-    const now = new Date();
-
-    const tips = await RolloverTip.find({
-      expiresAt: { $gte: now },
-    })
-      .populate("plan", "name odds duration")
-      .sort({ createdAt: -1 });
+    const tips = await RolloverTip.find().populate("plan").lean();
 
     const grouped = {};
-
     tips.forEach((tip) => {
-      const key = tip.plan._id.toString();
-      if (!grouped[key]) {
-        grouped[key] = {
-          planId: tip.plan._id,
+      const planId = tip.plan?._id?.toString();
+      if (!planId) return; // Skip tips with no plan
+
+      if (!grouped[planId]) {
+        grouped[planId] = {
+          planId,
           planName: tip.plan.name,
-          odds: tip.plan.odds,
-          duration: tip.plan.duration,
+          totalOdds: tip.totalOdds,
           tips: [],
         };
       }
-      grouped[key].tips.push({
-        _id: tip._id,
-        dayIndex: tip.dayIndex,
-        games: tip.games,
-        totalOdds: tip.totalOdds,
-        note: tip.note,
-        expiresAt: tip.expiresAt,
-      });
+      grouped[planId].tips.push(tip);
     });
 
     res.json(Object.values(grouped));
   } catch (err) {
-    console.error("❌ Error fetching grouped rollover tips:", err);
+    console.error("❌ Failed to fetch rollover tips:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Subscribe to a rollover plan
-exports.subscribeToPlan = async (req, res) => {
+// ✅ GET /rollover/my — For logged-in user's subscriptions
+const getMyRolloverPlans = async (req, res) => {
   try {
-    const { planId, wallet } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user._id;
+    const subscriptions = await RolloverSubscription.find({ user: userId })
+      .populate("plan")
+      .lean();
 
-    const user = await User.findById(userId);
-    const plan = await RolloverPlan.findById(planId);
-    if (!user || !plan) {
-      return res.status(404).json({ message: "User or plan not found" });
-    }
+    const result = subscriptions.map((sub) => ({
+      planId: sub.plan?._id?.toString() || "unknown",
+      planName: sub.plan?.name || "Unknown Plan",
+      subscribedAt: sub.createdAt,
+      expiresAt: sub.expiresAt,
+    }));
 
-    const alreadySubscribed = await UserRollover.findOne({ userId, plan: planId });
-    if (alreadySubscribed) {
-      return res.status(400).json({ message: "Already subscribed to this plan" });
-    }
+    res.json(result);
+  } catch (err) {
+    console.error("❌ Error loading user's rollover subscriptions:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    if (!["main", "bonus"].includes(wallet)) {
-      return res.status(400).json({ message: "Invalid wallet type" });
-    }
+// ✅ GET /rollover/plans/all — For /subscribe page (raw list)
+const getAllRolloverPlansPlain = async (req, res) => {
+  try {
+    const plans = await RolloverPlan.find().sort({ createdAt: -1 }).lean();
+    res.json(plans);
+  } catch (err) {
+    console.error("❌ Error fetching all plans:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
-    if (wallet === "main") {
-      if (user.mainWallet < plan.price) {
-        return res.status(400).json({ message: "Insufficient main wallet balance" });
-      }
-      user.mainWallet -= plan.price;
-    } else {
-      if (user.bonusWallet < plan.price) {
-        return res.status(400).json({ message: "Insufficient bonus wallet balance" });
-      }
-      user.bonusWallet -= plan.price;
-    }
 
-    await user.save();
+// ✅ GET /rollover/today — Today's tips by date match
+const getTodaysRollover = async (req, res) => {
+  try {
+    const tips = await RolloverTip.find().populate("plan").lean();
+    const today = new Date().toISOString().split("T")[0];
 
-    await UserRollover.create({
-      userId: user._id,
-      plan: plan._id,
-      subscribedAt: new Date(),
+    const todaysTips = tips.filter((tip) => {
+      if (!tip.expiresAt) return false;
+      const date = new Date(tip.expiresAt);
+      if (isNaN(date.getTime())) return false;
+      return date.toISOString().startsWith(today);
     });
 
-    res.status(200).json({ message: "Subscription successful" });
+    res.json(todaysTips);
   } catch (err) {
-    console.error("❌ Subscription error:", err);
+    console.error("❌ Error fetching today's rollover tips:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// ✅ GET /rollover/grouped — Grouped tips by plan
+const getGroupedRolloverTips = async (req, res) => {
+  try {
+    const tips = await RolloverTip.find().populate("plan").lean();
+
+    const grouped = {};
+    tips.forEach((tip) => {
+      const planId = tip.plan?._id?.toString();
+      if (!planId) return;
+
+      if (!grouped[planId]) {
+        grouped[planId] = {
+          planId,
+          planName: tip.plan.name,
+          totalOdds: tip.totalOdds,
+          tips: [],
+        };
+      }
+      grouped[planId].tips.push(tip);
+    });
+
+    res.json(Object.values(grouped));
+  } catch (err) {
+    console.error("❌ Failed to group rollover tips:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+module.exports = {
+  getAllRolloverTips,
+  getMyRolloverPlans,
+  getAllRolloverPlansPlain,
+  getTodaysRollover,
+  getGroupedRolloverTips,
+  };

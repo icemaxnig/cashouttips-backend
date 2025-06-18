@@ -10,4 +10,4 @@ const rolloverSubscriptionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model("RolloverSubscription", rolloverSubscriptionSchema);
+module.exports = mongoose.models.RolloverSubscription || mongoose.model("RolloverSubscription", rolloverSubscriptionSchema);

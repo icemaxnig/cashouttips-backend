@@ -50,16 +50,24 @@ const uploadBookingCode = async (req, res) => {
 // ✅ Public - Get all available booking codes (not expired)
 const getBookingCodes = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const codes = await BookingCode.find({ expiresAt: { $gt: new Date() } }).sort({ postedAt: -1 });
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+
+    const userId = req.user._id;
+    const codes = await BookingCode.find({ 
+      expiresAt: { $gt: new Date() } 
+    })
+    .sort({ postedAt: -1 })
+    .lean();
 
     const enriched = codes.map((code) => {
-      const alreadyPurchased = code.purchasedBy.includes(userId);
+      const alreadyPurchased = code.purchasedBy.some(id => id.toString() === userId.toString());
       const buyerCount = code.purchasedBy.length;
-      const purchaseEntry = code.purchaseLog?.find(p => p.userId.toString() === userId);
+      const purchaseEntry = code.purchaseLog?.find(p => p.userId.toString() === userId.toString());
 
       return {
-        ...code.toObject(),
+        ...code,
         alreadyPurchased,
         buyerCount,
         purchaseTime: purchaseEntry?.time || null,

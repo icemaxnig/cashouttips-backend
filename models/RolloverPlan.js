@@ -47,4 +47,4 @@ const RolloverPlanSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-module.exports = mongoose.model("RolloverPlan", RolloverPlanSchema);
+module.exports = mongoose.models.RolloverPlan || mongoose.model("RolloverPlan", RolloverPlanSchema);

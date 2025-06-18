@@ -17,4 +17,4 @@ const userRolloverSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("UserRollover", userRolloverSchema);
+module.exports = mongoose.models.UserRollover || mongoose.model("UserRollover", userRolloverSchema);

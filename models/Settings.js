@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const SettingsSchema = new mongoose.Schema({
@@ -12,4 +11,4 @@ const SettingsSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model("Settings", SettingsSchema);
+module.exports = mongoose.models.Settings || mongoose.model("Settings", SettingsSchema);

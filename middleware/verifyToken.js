@@ -1,8 +1,9 @@
 // middleware/verifyToken.js
 
 const jwt = require("jsonwebtoken");
+const Admin = require("../models/Admin");
 
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -16,12 +17,29 @@ const verifyToken = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log("🔑 Decoded token:", decoded);
 
-    // Set user with consistent _id field
-    req.user = {
-      _id: decoded._id || decoded.id || decoded.userId,
-      role: decoded.role || 'user',
-      email: decoded.email
-    };
+    // Check if this is an admin token
+    if (decoded.adminId) {
+      console.log("🔍 Admin token detected, fetching admin user");
+      const admin = await Admin.findById(decoded.adminId);
+      
+      if (!admin) {
+        console.log("❌ Admin not found in database");
+        return res.status(403).json({ message: "Admin not found" });
+      }
+
+      req.user = {
+        _id: admin._id,
+        role: admin.role || 'admin',
+        email: admin.email
+      };
+    } else {
+      // Regular user token
+      req.user = {
+        _id: decoded._id || decoded.id || decoded.userId,
+        role: decoded.role || 'user',
+        email: decoded.email
+      };
+    }
 
     console.log("✅ User set in request:", req.user);
     next();

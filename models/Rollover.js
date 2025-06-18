@@ -8,4 +8,4 @@ const rolloverSchema = new mongoose.Schema({
   status: { type: String, default: "pending" }, // pending, won, lost
 }, { timestamps: true });
 
-module.exports = mongoose.model("Rollover", rolloverSchema);
+module.exports = mongoose.models.Rollover || mongoose.model("Rollover", rolloverSchema);

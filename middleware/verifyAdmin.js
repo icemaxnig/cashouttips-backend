@@ -13,14 +13,21 @@ const verifyAdmin = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     console.log("✅ Verifying admin for user:", decoded?.adminId);
+    console.log("🔍 Decoded token:", decoded);
 
     const admin = await Admin.findById(decoded.adminId);
 
     console.log("🔍 Found admin:", admin);
+    console.log("🔍 Admin ID from token:", decoded.adminId);
+    console.log("🔍 Admin found:", !!admin);
 
-    if (!admin) return res.status(403).json({ message: "❌ Admin not found" });
+    if (!admin) {
+      console.log("❌ Admin not found in database");
+      return res.status(403).json({ message: "❌ Admin not found" });
+    }
 
-    req.user = { userId: admin._id, role: admin.role };
+    req.user = { _id: admin._id, role: admin.role, email: admin.email };
+    console.log("✅ User set in request:", req.user);
     next();
   } catch (err) {
     console.error("❌ verifyAdmin error:", err.message);

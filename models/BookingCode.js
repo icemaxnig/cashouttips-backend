@@ -19,4 +19,4 @@ const bookingCodeSchema = new mongoose.Schema({
   note: { type: String },
 });
 
-module.exports = mongoose.model("BookingCode", bookingCodeSchema);
+module.exports = mongoose.models.BookingCode || mongoose.model("BookingCode", bookingCodeSchema);

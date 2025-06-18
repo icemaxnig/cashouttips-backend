@@ -52,4 +52,21 @@ router.get("/wallet", verifyToken, async (req, res) => {
   }
 });
 
+// ✅ GET /api/wallets - New endpoint to match frontend expectation
+router.get("/wallets", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select("mainWallet bonusWallet");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      mainWallet: user.mainWallet || 0,
+      bonusWallet: user.bonusWallet || 0,
+      totalBalance: (user.mainWallet || 0) + (user.bonusWallet || 0)
+    });
+  } catch (err) {
+    console.error("❌ Error fetching wallets:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

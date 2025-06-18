@@ -19,4 +19,4 @@ const bookingPurchaseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("BookingPurchase", bookingPurchaseSchema);
+module.exports = mongoose.models.BookingPurchase || mongoose.model("BookingPurchase", bookingPurchaseSchema);

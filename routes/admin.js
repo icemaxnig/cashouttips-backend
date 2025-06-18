@@ -13,7 +13,7 @@ const {
   permanentDeleteUser
 } = require("../controllers/authController");
 
-const rolloverGameController = require("../controllers/rolloverGameController");
+const { createRolloverGame } = require("../controllers/rolloverGameController");
 
 const verifyToken = require("../middleware/verifyToken");
 const checkRole = require("../middleware/roleMiddleware");
@@ -29,6 +29,6 @@ router.get("/users/deleted", verifyAdminToken, getDeletedUsers);
 router.patch("/users/:id/restore", verifyAdminToken, restoreUser);
 router.delete("/users/:id/permanent", verifyAdminToken, permanentDeleteUser);
 
-router.post("/rollover-game", verifyAdminToken, rolloverGameController.createRolloverGame);
+router.post("/rollover-game", verifyAdminToken, createRolloverGame);
 
 module.exports = router;

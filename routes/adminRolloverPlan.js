@@ -15,12 +15,12 @@ const {
 router.get("/rollover-plans", getPublicPlans);
 
 // 🔒 ADMIN: Create new rollover plan
-router.post("/admin/rollover-plans", createPlan);
+router.post("/rollover-plans", createPlan);
 
 // 🔒 ADMIN: Update existing plan
-router.put("/admin/rollover-plan/:id", updatePlan);
+router.put("/rollover-plan/:id", updatePlan);
 
 // 🔒 ADMIN: Delete a plan
-router.delete("/admin/rollover-plan/:id", deletePlan);
+router.delete("/rollover-plan/:id", deletePlan);
 
 module.exports = router;
