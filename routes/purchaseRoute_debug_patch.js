@@ -4,6 +4,7 @@ const BookingCode = require("../models/BookingCode");
 const BookingPurchase = require("../models/BookingPurchase");
 const User = require("../models/User");
 const verifyToken = require("../middleware/verifyToken");
+const sendError = require("../utils/sendError");
 
 router.post("/purchase/:id", verifyToken, async (req, res) => {
   const userId = req.user._id;
@@ -20,13 +21,13 @@ router.post("/purchase/:id", verifyToken, async (req, res) => {
     console.log("- User main wallet:", user?.mainWallet);
     console.log("- User bonus wallet:", user?.bonusWallet);
 
-    if (!bookingCode) return res.status(404).json({ error: "Code not found" });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!bookingCode) return sendError(res, 404, "Code not found");
+    if (!user) return sendError(res, 404, "User not found");
 
     // Check if user has already purchased this code
     const alreadyPurchased = await BookingPurchase.findOne({ user: user._id, code: bookingCode._id });
     if (alreadyPurchased) {
-      return res.status(400).json({ error: "Already purchased" });
+      return sendError(res, 400, "Already purchased");
     }
 
     // Check if user has sufficient balance
@@ -38,14 +39,11 @@ router.post("/purchase/:id", verifyToken, async (req, res) => {
         mainWallet: user.mainWallet,
         bonusWallet: user.bonusWallet
       });
-      return res.status(400).json({ 
-        error: "Insufficient balance",
-        details: {
-          required: bookingCode.price,
-          available: totalBalance,
-          mainWallet: user.mainWallet,
-          bonusWallet: user.bonusWallet
-        }
+      return sendError(res, 400, "Insufficient balance", {
+        required: bookingCode.price,
+        available: totalBalance,
+        mainWallet: user.mainWallet,
+        bonusWallet: user.bonusWallet
       });
     }
 
@@ -86,7 +84,7 @@ router.post("/purchase/:id", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("🔥 Error in /purchase/:id", err);
-    res.status(500).json({ error: "Purchase failed" });
+    sendError(res, 500, "Purchase failed");
   }
 });
 

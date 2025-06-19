@@ -1,4 +1,5 @@
 const BookingCode = require('../models/BookingCode');
+const logActivity = require("../utils/logActivity");
 
 exports.uploadBookingCode = async (req, res) => {
   const { code, odds, bookmaker, urgencyTag, slotLimit, expiresInHours, expiresInMinutes } = req.body;
@@ -29,9 +30,10 @@ exports.uploadBookingCode = async (req, res) => {
       code, odds, bookmaker, urgencyTag, slotLimit,
       price, successRate, expiresAt
     });
+    await logActivity({ userId: req.user?._id, type: "CreateBookingCode", description: `Uploaded booking code ${code}` });
     res.json(codeObj);
   } catch {
-    res.status(500).json({ error: 'Failed to upload code' });
+    res.status(500).json({ message: 'Failed to upload code' });
   }
 };
 
@@ -40,6 +42,6 @@ exports.getBookingCodes = async (req, res) => {
     const codes = await BookingCode.find({ expiresAt: { $gt: new Date() } }).sort({ postedAt: -1 });
     res.json(codes);
   } catch {
-    res.status(500).json({ error: 'Fetch failed' });
+    res.status(500).json({ message: 'Fetch failed' });
   }
 };

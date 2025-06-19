@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const logActivity = require("../utils/logActivity");
 
 exports.getProfile = async (req, res) => {
   res.json(req.user);
@@ -11,6 +12,7 @@ exports.updateEmail = async (req, res) => {
   try {
     req.user.email = email;
     await req.user.save();
+    await logActivity({ userId: req.user._id, type: "UpdateEmail", description: `Updated email to ${email}` });
     res.json({ message: "Email updated", email });
   } catch (err) {
     res.status(500).json({ message: "Failed to update email" });
@@ -25,6 +27,7 @@ exports.updatePassword = async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     req.user.password = hashed;
     await req.user.save();
+    await logActivity({ userId: req.user._id, type: "UpdatePassword", description: `Updated password` });
     res.json({ message: "Password updated" });
   } catch (err) {
     res.status(500).json({ message: "Failed to update password" });

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/authMiddleware");
 const Rollover = require("../models/Rollover");
+const sendError = require("../utils/sendError");
 
 // GET /api/rollover/active
 router.get("/active", auth, async (req, res) => {

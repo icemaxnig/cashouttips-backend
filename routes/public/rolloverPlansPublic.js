@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const RolloverPlan = require("../../models/RolloverPlan");
+const sendError = require("../../utils/sendError");
 
 router.get("/", async (req, res) => {
   try {
@@ -9,7 +10,7 @@ router.get("/", async (req, res) => {
     res.json(plans);
   } catch (err) {
     console.error("❌ Failed to fetch rollover plans", err);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
   }
 });
 

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const BookingCode = require("../../models/BookingCode");
+const sendError = require("../../utils/sendError");
 
 // 🔓 Public - Get All Booking Codes (Not expired)
 router.get("/", async (req, res) => {
@@ -9,7 +10,7 @@ router.get("/", async (req, res) => {
     res.json(codes);
   } catch (err) {
     console.error("Booking fetch failed:", err);
-    res.status(500).json({ message: "Failed to load booking codes" });
+    sendError(res, 500, "Failed to load booking codes", err);
   }
 });
 
@@ -21,7 +22,7 @@ router.get("/:id", async (req, res) => {
     res.json(code);
   } catch (err) {
     console.error("Single fetch error:", err);
-    res.status(500).json({ message: "Failed to load booking code" });
+    sendError(res, 500, "Failed to load booking code", err);
   }
 });
 

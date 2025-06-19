@@ -1,7 +1,84 @@
 // ✅ rolloverController.js — Final Cleaned and Fixed Version
 const RolloverTip = require("../models/RolloverTip");
 const RolloverPlan = require("../models/RolloverPlan");
+const User = require("../models/User");
+const UserRollover = require("../models/UserRollover");
 const RolloverSubscription = require("../models/RolloverSubscription");
+
+
+// ✅ POST /rollover/subscribe — Subscribe to a rollover plan
+const subscribeToPlan = async (req, res) => {
+  try {
+    const { planId, walletType = "main" } = req.body;
+    const userId = req.user._id;
+
+    if (!planId) {
+      return res.status(400).json({ message: "Plan ID is required" });
+    }
+
+    // Check if plan exists
+    const plan = await RolloverPlan.findById(planId);
+    if (!plan) {
+      return res.status(404).json({ message: "Plan not found" });
+    }
+
+    // Check if user already has an active subscription to this plan
+    const existingSubscription = await UserRollover.findOne({
+      userId,
+      plan: planId,
+      isActive: true
+    });
+
+    if (existingSubscription) {
+      return res.status(400).json({ message: "You already have an active subscription to this plan" });
+    }
+
+    // Check user's wallet balance
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const walletBalance = walletType === "main" ? user.mainWallet : user.bonusWallet;
+    if (walletBalance < plan.price) {
+      return res.status(400).json({ message: "Insufficient wallet balance" });
+    }
+
+    // Deduct from wallet
+    if (walletType === "main") {
+      user.mainWallet -= plan.price;
+    } else {
+      user.bonusWallet -= plan.price;
+    }
+    await user.save();
+
+    // Create subscription
+    const subscription = new UserRollover({
+      userId,
+      plan: planId,
+      subscribedAt: new Date(),
+      isActive: true,
+      duration: plan.duration,
+      startDate: new Date()
+    });
+
+    await subscription.save();
+
+    res.status(201).json({ 
+      message: "Successfully subscribed to rollover plan",
+      subscription: {
+        planId: plan._id,
+        planName: plan.name,
+        duration: plan.duration,
+        subscribedAt: subscription.subscribedAt
+      }
+    });
+
+  } catch (err) {
+    console.error("❌ Error subscribing to plan:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 // ✅ GET /rollover/all — For public view or dashboard widget
 const getAllRolloverTips = async (req, res) => {
@@ -35,21 +112,66 @@ const getAllRolloverTips = async (req, res) => {
 const getMyRolloverPlans = async (req, res) => {
   try {
     const userId = req.user._id;
-    const subscriptions = await RolloverSubscription.find({ user: userId })
-      .populate("plan")
-      .lean();
+    
+    // Use UserRollover model to get active subscriptions
+    const now = new Date();
+    const activeSubscriptions = await UserRollover.find({
+      userId,
+      isActive: true
+    }).populate("plan").lean();
 
-    const result = subscriptions.map((sub) => ({
-      planId: sub.plan?._id?.toString() || "unknown",
-      planName: sub.plan?.name || "Unknown Plan",
-      subscribedAt: sub.createdAt,
-      expiresAt: sub.expiresAt,
-    }));
+    const result = activeSubscriptions
+      .filter(sub => {
+        if (!sub.plan) return false;
+        
+        const startDate = new Date(sub.startDate);
+        const endDate = new Date(startDate.getTime() + (sub.duration * 24 * 60 * 60 * 1000));
+        
+        return now <= endDate; // Subscription is still active
+      })
+      .map((sub) => {
+        const startDate = new Date(sub.startDate);
+        const endDate = new Date(startDate.getTime() + (sub.duration * 24 * 60 * 60 * 1000));
+        const daysLeft = Math.ceil((endDate - now) / (24 * 60 * 60 * 1000));
+        
+        return {
+          planId: sub.plan?._id?.toString() || "unknown",
+          planName: sub.plan?.name || "Unknown Plan",
+          subscribedAt: sub.subscribedAt,
+          expiresAt: endDate,
+          daysLeft: Math.max(0, daysLeft),
+          isActive: true,
+          totalOdds: sub.plan?.odds || "2.0"
+        };
+      });
 
+    console.log("📊 User subscriptions:", { userId, activeCount: result.length, subscriptions: result });
     res.json(result);
   } catch (err) {
     console.error("❌ Error loading user's rollover subscriptions:", err.message);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ✅ Helper function to check if user is subscribed to a plan
+const isUserSubscribedToPlan = async (userId, planId) => {
+  try {
+    const now = new Date();
+    const subscription = await UserRollover.findOne({
+      userId,
+      plan: planId,
+      isActive: true
+    }).populate("plan");
+
+    if (!subscription || !subscription.plan) return false;
+    
+    const startDate = new Date(subscription.startDate);
+    const endDate = new Date(startDate.getTime() + (subscription.duration * 24 * 60 * 60 * 1000));
+    
+    return now <= endDate; // Subscription is still active
+  } catch (err) {
+    console.error("❌ Error checking subscription:", err.message);
+    return false;
   }
 };
 
@@ -63,7 +185,6 @@ const getAllRolloverPlansPlain = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // ✅ GET /rollover/today — Today's tips by date match
 const getTodaysRollover = async (req, res) => {
@@ -113,11 +234,23 @@ const getGroupedRolloverTips = async (req, res) => {
   }
 };
 
+exports.getUserSubscriptions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const subscriptions = await RolloverSubscription.find({ userId });
+    res.status(200).json(subscriptions);
+  } catch (error) {
+    console.error("Error fetching subscriptions:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
 module.exports = {
+  subscribeToPlan,
   getAllRolloverTips,
   getMyRolloverPlans,
   getAllRolloverPlansPlain,
   getTodaysRollover,
   getGroupedRolloverTips,
-  };
+  isUserSubscribedToPlan,
+};

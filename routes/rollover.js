@@ -9,11 +9,15 @@ const UserRollover = require("../models/UserRollover");
 
 const rolloverController = require("../controllers/rolloverController");
 const { getActiveRolloverForUser } = require("../controllers/rolloverAccessController");
+const sendError = require("../utils/sendError");
 
 // Debug logs
 
 // ✅ Subscribe to a plan (secured)
 router.post("/subscribe", verifyToken, rolloverController.subscribeToPlan);
+
+// ✅ Get all rollover tips (for dashboard preview)
+router.get("/all", rolloverController.getAllRolloverTips);
 
 // ✅ Get today's rollover tips
 router.get("/today", rolloverController.getTodaysRollover);
@@ -38,27 +42,15 @@ router.get("/plans", async (req, res) => {
     res.status(200).json(enhanced);
   } catch (err) {
     console.error("❌ Failed to fetch rollover plans:", err);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
   }
 });
+
+// ✅ Get all plans (for subscribe page)
+router.get("/plans/all", rolloverController.getAllRolloverPlansPlain);
 
 // ✅ Get user subscriptions (secured)
-router.get("/my", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const subs = await UserRollover.find({ userId })
-      .populate("plan", "name duration") // only return needed fields
-      .sort({ subscribedAt: -1 });
-
-    res.status(200).json(subs);
-  } catch (err) {
-    console.error("❌ Fetch user subscriptions error:", err);
-    res.status(500).json({ message: "Failed to fetch user plans" });
-  }
-});
-
-
+router.get("/my", verifyToken, rolloverController.getMyRolloverPlans);
 
 // ✅ Telegram Bot Access
 router.get("/flex-active", getActiveRolloverForUser);

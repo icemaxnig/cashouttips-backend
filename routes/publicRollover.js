@@ -1,9 +1,9 @@
-
 // 📁 routes/publicRollover.js
 
 const express = require("express");
 const router = express.Router();
 const RolloverPlan = require("../models/RolloverPlan");
+const sendError = require("../utils/sendError");
 
 // ✅ GET /rollover/plans (Public)
 router.get("/plans", async (req, res) => {
@@ -12,7 +12,7 @@ router.get("/plans", async (req, res) => {
     res.status(200).json(plans);
   } catch (err) {
     console.error("Error fetching public rollover plans:", err);
-    res.status(500).json({ message: "Failed to fetch rollover plans" });
+    sendError(res, 500, "Failed to fetch rollover plans", err);
   }
 });
 

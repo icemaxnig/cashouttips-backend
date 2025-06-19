@@ -25,7 +25,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ adminId: admin._id, role: admin.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: admin._id, role: admin.role }, process.env.JWT_SECRET, {
       expiresIn: "7d"
     });
 
@@ -45,7 +45,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", verifyAdminToken, async (req, res) => {
   try {
-    const admin = await Admin.findById(req.admin.adminId).select("-password");
+    const admin = await Admin.findById(req.admin.id).select("-password");
     if (!admin) {
       return res.status(404).json({ success: false, message: "Admin not found" });
     }

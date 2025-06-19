@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
+const User = require("../models/User");
 
 const verifyAdmin = async (req, res, next) => {
   try {
@@ -12,13 +13,28 @@ const verifyAdmin = async (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    console.log("✅ Verifying admin for user:", decoded?.adminId);
+    // Handle different token structures: 'id', 'adminId', 'userId'
+    const adminId = decoded.id || decoded.adminId || decoded.userId;
+
+    console.log("✅ Verifying admin for user:", adminId);
     console.log("🔍 Decoded token:", decoded);
 
-    const admin = await Admin.findById(decoded.adminId);
+    // Check both Admin and User collections
+    let admin = await Admin.findById(adminId);
+    
+    if (!admin) {
+      // If not found in Admin collection, check User collection
+      const user = await User.findById(adminId);
+      if (user && user.role === "admin") {
+        admin = user; // Treat user with admin role as admin
+        console.log("🔍 Found admin in User collection");
+      }
+    } else {
+      console.log("🔍 Found admin in Admin collection");
+    }
 
     console.log("🔍 Found admin:", admin);
-    console.log("🔍 Admin ID from token:", decoded.adminId);
+    console.log("🔍 Admin ID from token:", adminId);
     console.log("🔍 Admin found:", !!admin);
 
     if (!admin) {

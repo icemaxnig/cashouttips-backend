@@ -29,7 +29,11 @@ const userSchema = new mongoose.Schema({
 
   purchasedBookingCodes: [
     { type: mongoose.Schema.Types.ObjectId, ref: "BookingCode" }
-  ]
+  ],
+
+  isSubscribed: { type: Boolean, default: false },
+  subscriptionStart: { type: Date },
+  subscriptionExpires: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.models.User || mongoose.model("User", userSchema);

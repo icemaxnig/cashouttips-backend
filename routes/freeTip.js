@@ -1,7 +1,7 @@
-
 const express = require("express");
 const router = express.Router();
 const FreeTip = require("../models/FreeTip");
+const sendError = require("../utils/sendError");
 
 // POST /api/freetip
 router.post("/", async (req, res) => {
@@ -19,7 +19,7 @@ router.post("/", async (req, res) => {
     res.status(201).json({ message: "Free tip uploaded successfully" });
   } catch (err) {
     console.error("Free Tip Upload Error:", err);
-    res.status(500).json({ message: "Failed to upload free tip" });
+    sendError(res, 500, "Failed to upload free tip", err);
   }
 });
 

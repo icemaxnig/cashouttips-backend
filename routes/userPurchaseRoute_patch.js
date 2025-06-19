@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const BookingPurchase = require("../models/BookingPurchase");
 const verifyToken = require("../middleware/verifyToken");
+const sendError = require("../utils/sendError");
 
 // Get all purchased codes
 router.get("/purchased-codes", verifyToken, async (req, res) => {
@@ -52,7 +53,7 @@ router.get("/purchased-codes", verifyToken, async (req, res) => {
     res.json(enhanced);
   } catch (err) {
     console.error("❌ Error fetching purchases:", err);
-    res.status(500).json({ error: "Failed to fetch purchased codes" });
+    sendError(res, 500, "Failed to fetch purchased codes", err);
   }
 });
 
@@ -77,7 +78,7 @@ router.get("/purchased-codes/:id", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error fetching purchase details:", err);
-    res.status(500).json({ error: "Failed to fetch purchase details" });
+    sendError(res, 500, "Failed to fetch purchase details", err);
   }
 });
 

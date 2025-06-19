@@ -55,6 +55,7 @@ app.use("/api/user", require("./routes/userPurchaseRoute_patch"));
 app.use("/api/booking", require("./routes/purchaseRoute_debug_patch"));
 app.use("/api/debug", require("./routes/debugTokenRoute"));
 app.use("/api/rollover-plans", require("./routes/public/rolloverPlansPublic"));
+app.use("/api/rollover", require("./routes/rolloverMySubscriptions"));
 
 // ✅ Legacy/Non-API
 app.use("/api/admin", require("./routes/adminRolloverPlan"));
@@ -62,7 +63,9 @@ app.use("/rollover", require("./routes/publicRollover"));
 
 // 🧹 Start Cron Jobs
 const startRolloverCleanupJob = require("./cron/rolloverCleanup");
+const startSubscriptionExpiryJob = require("./cron/subscriptionExpiryJob");
 startRolloverCleanupJob();
+startSubscriptionExpiryJob();
 
 // WebSocket connection handling
 io.on("connection", (socket) => {

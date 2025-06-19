@@ -1,4 +1,5 @@
 const Withdrawal = require('../models/Withdrawal');
+const logActivity = require("../utils/logActivity");
 
 exports.requestWithdrawal = async (req, res) => {
   const { telegramId, amount, method, details } = req.body;
@@ -26,6 +27,7 @@ exports.approveWithdrawal = async (req, res) => {
   const { id } = req.params;
   try {
     const updated = await Withdrawal.findByIdAndUpdate(id, { status: 'approved' }, { new: true });
+    await logActivity({ userId: req.user?._id, type: "ApproveWithdrawal", description: `Approved withdrawal ${id}` });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: 'Failed to approve' });

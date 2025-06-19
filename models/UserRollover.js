@@ -14,6 +14,18 @@ const userRolloverSchema = new mongoose.Schema({
   subscribedAt: {
     type: Date,
     default: Date.now
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  duration: {
+    type: Number,
+    required: true
+  },
+  startDate: {
+    type: Date,
+    default: Date.now
   }
 });
 

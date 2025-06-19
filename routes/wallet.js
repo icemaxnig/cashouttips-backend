@@ -4,13 +4,14 @@ const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 const mongoose = require("mongoose");
 const Wallet = mongoose.models.Wallet || require("../models/Wallet");
+const sendError = require("../utils/sendError");
 
 // ?? Get wallet balances (main + bonus)
 router.get("/", verifyToken, async (req, res) => {
   try {
     const wallet = await Wallet.findOne({ user: req.user.userId });
     if (!wallet) {
-      return res.status(404).json({ message: "Wallet not found" });
+      return sendError(res, 404, "Wallet not found");
     }
 
     res.json({
@@ -19,7 +20,7 @@ router.get("/", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Wallet fetch error:", err.message);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error");
   }
 });
 

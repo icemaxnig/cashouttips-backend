@@ -1,10 +1,10 @@
-
 const express = require("express");
 const router = express.Router();
 const BookingCode = require("../models/BookingCode");
 const BookingPurchase = require("../models/BookingPurchase");
 const User = require("../models/User");
 const verifyToken = require("../middleware/verifyToken");
+const sendError = require("../utils/sendError");
 
 router.post("/purchase/:id", verifyToken, async (req, res) => {
   const userId = req.user._id;
@@ -12,18 +12,18 @@ router.post("/purchase/:id", verifyToken, async (req, res) => {
 
   try {
     const bookingCode = await BookingCode.findById(codeId);
-    if (!bookingCode) return res.status(404).json({ error: "Code not found" });
+    if (!bookingCode) return sendError(res, 404, "Code not found");
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return sendError(res, 404, "User not found");
 
     if (user.mainWallet < bookingCode.price) {
-      return res.status(400).json({ error: "Insufficient balance" });
+      return sendError(res, 400, "Insufficient balance");
     }
 
     const alreadyPurchased = await BookingPurchase.findOne({ userId, codeId });
     if (alreadyPurchased) {
-      return res.status(400).json({ error: "Already purchased" });
+      return sendError(res, 400, "Already purchased");
     }
 
     // Deduct from user's main wallet
@@ -35,7 +35,7 @@ router.post("/purchase/:id", verifyToken, async (req, res) => {
     res.json({ success: true, purchase });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Purchase failed" });
+    sendError(res, 500, "Purchase failed");
   }
 });
 

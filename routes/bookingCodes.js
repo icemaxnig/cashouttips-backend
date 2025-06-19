@@ -4,6 +4,7 @@ const router = express.Router();
 const { uploadBookingCode, getBookingCodes, buyBookingCode, getUserPurchasedCodes } = require("../controllers/bookingCodeController");
 const verifyToken = require("../middleware/verifyToken");
 const BookingCode = require("../models/BookingCode");
+const sendError = require("../utils/sendError");
 
 // ✅ Get all booking codes, with purchase flag
 router.get("/", verifyToken, async (req, res) => {
@@ -27,7 +28,7 @@ router.get("/", verifyToken, async (req, res) => {
     res.json(enriched);
   } catch (err) {
     console.error("❌ Error fetching booking codes:", err);
-    res.status(500).json({ message: "Failed to fetch booking codes" });
+    sendError(res, 500, "Failed to fetch booking codes", err);
   }
 });
 
@@ -52,7 +53,7 @@ router.get("/:id", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error fetching booking code:", err);
-    res.status(500).json({ message: "Failed to fetch booking code" });
+    sendError(res, 500, "Failed to fetch booking code", err);
   }
 });
 

@@ -18,7 +18,7 @@ const uploadBookingCode = async (req, res) => {
     } = req.body;
 
     if (!bookingCode || !totalOdds || !platform || !price || !expiryMinutes) {
-      return res.status(400).json({ error: "Missing required fields" });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const successRate = parseInt(confidence || 75);
@@ -43,7 +43,7 @@ const uploadBookingCode = async (req, res) => {
     res.status(201).json(codeObj);
   } catch (err) {
     console.error("Upload error:", err);
-    res.status(500).json({ error: "Upload failed" });
+    res.status(500).json({ message: "Upload failed" });
   }
 };
 
@@ -51,7 +51,7 @@ const uploadBookingCode = async (req, res) => {
 const getBookingCodes = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
-      return res.status(401).json({ error: "User not authenticated" });
+      return res.status(401).json({ message: "User not authenticated" });
     }
 
     const userId = req.user._id;
@@ -77,7 +77,7 @@ const getBookingCodes = async (req, res) => {
     res.json(enriched);
   } catch (err) {
     console.error("Error fetching booking codes:", err);
-    res.status(500).json({ error: "Failed to fetch booking codes" });
+    res.status(500).json({ message: "Failed to fetch booking codes" });
   }
 };
 
@@ -88,19 +88,19 @@ const buyBookingCode = async (req, res) => {
 
   try {
     const code = await BookingCode.findById(codeId);
-    if (!code) return res.status(404).json({ error: "Booking code not found" });
+    if (!code) return res.status(404).json({ message: "Booking code not found" });
 
     if (new Date() > code.expiresAt)
-      return res.status(400).json({ error: "Code has expired" });
+      return res.status(400).json({ message: "Code has expired" });
 
     if (code.purchasedBy.includes(userId))
-      return res.status(400).json({ error: "Already purchased" });
+      return res.status(400).json({ message: "Already purchased" });
 
     if (code.slotLimit && code.purchasedBy.length >= code.slotLimit)
-      return res.status(400).json({ error: "Slots filled" });
+      return res.status(400).json({ message: "Slots filled" });
 
     const wallet = await Wallet.findOne({ userId });
-    if (!wallet) return res.status(404).json({ error: "Wallet not found" });
+    if (!wallet) return res.status(404).json({ message: "Wallet not found" });
 
     const { price } = code;
     let from = "";
@@ -112,7 +112,7 @@ const buyBookingCode = async (req, res) => {
       wallet.bonusWallet -= price;
       from = "bonusWallet";
     } else {
-      return res.status(400).json({ error: "Insufficient balance" });
+      return res.status(400).json({ message: "Insufficient balance" });
     }
 
     await wallet.save();
@@ -128,7 +128,7 @@ const buyBookingCode = async (req, res) => {
     });
   } catch (err) {
     console.error("Purchase error:", err);
-    res.status(500).json({ error: "Something went wrong" });
+    res.status(500).json({ message: "Something went wrong" });
   }
 };
 
@@ -140,7 +140,7 @@ const getUserPurchasedCodes = async (req, res) => {
     res.json(codes);
   } catch (err) {
     console.error("Fetch user codes error:", err);
-    res.status(500).json({ error: "Failed to fetch purchased codes" });
+    res.status(500).json({ message: "Failed to fetch purchased codes" });
   }
 };
 

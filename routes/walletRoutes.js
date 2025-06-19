@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/verifyToken");
 const User = require("../models/User");
+const sendError = require("../utils/sendError");
 
 // Debug middleware
 router.use((req, res, next) => {
@@ -23,7 +24,7 @@ router.get("/balance", verifyToken, async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Wallet balance fetch error:", error);
-    res.status(500).json({ message: "Server error while fetching wallet balance" });
+    sendError(res, 500, "Server error while fetching wallet balance", error);
   }
 });
 
@@ -38,7 +39,7 @@ router.get("/transactions", verifyToken, async (req, res) => {
     res.json(transactions);
   } catch (error) {
     console.error("❌ Wallet transactions fetch error:", error);
-    res.status(500).json({ message: "Server error while fetching wallet transactions" });
+    sendError(res, 500, "Server error while fetching wallet transactions", error);
   }
 });
 
@@ -56,7 +57,7 @@ router.get("/", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Wallet summary fetch error:", err);
-    res.status(500).json({ message: "Server error fetching wallet" });
+    sendError(res, 500, "Server error fetching wallet", err);
   }
 });
 

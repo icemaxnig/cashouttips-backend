@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Tip = require("../models/Tip");
 const verifyUserToken = require("../middleware/userAuthMiddleware");
+const sendError = require("../utils/sendError");
 
 // GET /api/tips/free
 router.get("/free", async (req, res) => {

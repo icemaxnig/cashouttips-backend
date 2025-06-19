@@ -1,7 +1,7 @@
-
 const express = require("express");
 const router = express.Router();
 const Withdrawal = require("../models/Withdrawal");
+const sendError = require("../utils/sendError");
 
 // Get all withdrawal requests
 router.get("/", async (req, res) => {
@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
     res.json(withdrawals);
   } catch (err) {
     console.error("Fetch withdrawals error:", err);
-    res.status(500).json({ message: "Failed to fetch withdrawals" });
+    sendError(res, 500, "Failed to fetch withdrawals", err);
   }
 });
 
@@ -32,7 +32,7 @@ router.patch("/:id", async (req, res) => {
     res.json({ message: "Withdrawal updated", withdrawal });
   } catch (err) {
     console.error("Update withdrawal error:", err);
-    res.status(500).json({ message: "Failed to update withdrawal" });
+    sendError(res, 500, "Failed to update withdrawal", err);
   }
 });
 

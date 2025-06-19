@@ -2,9 +2,13 @@ const mongoose = require("mongoose");
 
 const gameSchema = new mongoose.Schema({
   league: { type: String, required: true },
-  teams: { type: String, required: true }, // e.g., "Team A vs Team B"
-  time: { type: String, required: true },  // Could also be Date if preferred
+  teams: { type: String }, // e.g., "Team A vs Team B"
+  teamA: { type: String }, // Individual team names for better compatibility
+  teamB: { type: String },
+  kickoff: { type: String, required: true },  // Game time
   odds: { type: String, required: true },
+  bookmaker: { type: String, required: true },
+  bookingCode: { type: String, required: true },
   prediction: { type: String }, // Optional
 });
 
@@ -14,6 +18,7 @@ const rolloverTipSchema = new mongoose.Schema({
     ref: "RolloverPlan",
     required: true,
   },
+  dayIndex: { type: Number, required: true }, // Day number in the rollover sequence
   games: {
     type: [gameSchema],
     required: true,

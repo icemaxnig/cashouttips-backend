@@ -1,9 +1,9 @@
-
 const express = require("express");
 const router = express.Router();
 const nodemailer = require("nodemailer");
 const Settings = require("../models/Settings");
 const sendEmail = require("../utils/sendEmail");
+const sendError = require("../utils/sendError");
 
 // GET admin settings
 router.get("/", async (req, res) => {
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
     res.json(merged);
   } catch (err) {
     console.error("Failed to load settings:", err);
-    res.status(500).json({ error: "Failed to load settings" });
+    sendError(res, 500, "Failed to load settings", err);
   }
 });
 
@@ -38,7 +38,7 @@ router.put("/", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error("Failed to update settings:", err);
-    res.status(400).json({ error: "Failed to update settings" });
+    sendError(res, 400, "Failed to update settings", err);
   }
 });
 
@@ -69,7 +69,7 @@ router.post("/test-email", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Test email failed" });
+    sendError(res, 500, "Test email failed", err);
   }
 });
 
@@ -89,7 +89,7 @@ router.post("/test-smtp", async (req, res) => {
     res.json({ message: "Test email sent" });
   } catch (err) {
     console.error("SMTP test failed:", err);
-    res.status(500).json({ message: "SMTP test failed", error: err.message });
+    sendError(res, 500, "SMTP test failed", err);
   }
 });
 

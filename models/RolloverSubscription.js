@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 
 const rolloverSubscriptionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  plan: { type: mongoose.Schema.Types.ObjectId, ref: "RolloverPlan", required: true },
   planType: { type: String, required: true }, // e.g., "2.0-5"
   amount: { type: Number, required: true },
   startDate: { type: Date, required: true },

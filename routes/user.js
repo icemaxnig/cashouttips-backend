@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const verifyToken = require("../middleware/verifyToken");
+const auth = require("../middleware/auth");
+const sendError = require("../utils/sendError");
 
 // ✅ Dashboard: current user info
 router.get("/me", verifyToken, async (req, res) => {
@@ -11,7 +13,7 @@ router.get("/me", verifyToken, async (req, res) => {
     res.status(200).json(user);
   } catch (err) {
     console.error("Error in /users/me:", err.message);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
   }
 });
 
@@ -22,7 +24,7 @@ router.get("/", verifyToken, async (req, res) => {
     res.status(200).json(users);
   } catch (err) {
     console.error("❌ Error fetching users:", err);
-    res.status(500).json({ message: "Failed to fetch users" });
+    sendError(res, 500, "Failed to fetch users", err);
   }
 });
 
@@ -32,7 +34,7 @@ router.get("/all", verifyToken, async (req, res) => {
     res.status(200).json(users);
   } catch (err) {
     console.error("Failed to fetch users:", err);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
   }
 });
 
@@ -48,7 +50,7 @@ router.get("/wallet", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error fetching wallet:", err);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
   }
 });
 
@@ -65,7 +67,26 @@ router.get("/wallets", verifyToken, async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Error fetching wallets:", err);
-    res.status(500).json({ message: "Server error" });
+    sendError(res, 500, "Server error", err);
+  }
+});
+
+// Subscription status endpoint
+router.get("/subscription-status", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const isSubscribed = !!user.isSubscribed;
+    const subscriptionStart = user.subscriptionStart;
+    let expiryDate = null;
+    let daysLeft = null;
+    if (isSubscribed && subscriptionStart) {
+      expiryDate = new Date(new Date(subscriptionStart).getTime() + 30 * 24 * 60 * 60 * 1000);
+      daysLeft = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+    }
+    res.json({ isSubscribed, subscriptionStart, expiryDate, daysLeft });
+  } catch (err) {
+    sendError(res, 500, "Failed to fetch subscription status", err);
   }
 });
 
